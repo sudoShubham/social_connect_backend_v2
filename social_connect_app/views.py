@@ -490,7 +490,7 @@ def wishes_by_location_view(request):
 
 
 @require_GET
-def already_user_view(request):
+def check_user_exists(request):
     try:
         email = request.GET.get('email')
         if not email:
