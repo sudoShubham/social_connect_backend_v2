@@ -1,0 +1,749 @@
+{
+	"info": {
+		"_postman_id": "5b47dd9e-d79b-451d-894d-2607f0ba3172",
+		"name": "social_connect_app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13651431"
+	},
+	"item": [
+		{
+			"name": "wishes/?page=1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/speeches/?page=2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"speeches",
+						""
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "wish-by-category/school/?page=2",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/wish-by-category/Education/?page=2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"wish-by-category",
+						"Education",
+						""
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "user-wish/1/?page=2",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/user-wish/1/?page=2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"user-wish",
+						"1",
+						""
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "wishes-by-location/?latitude=10&longitude=10&radius=20",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/wishes-by-location/?latitude=10&longitude=10&radius=20",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"wishes-by-location",
+						""
+					],
+					"query": [
+						{
+							"key": "latitude",
+							"value": "10"
+						},
+						{
+							"key": "longitude",
+							"value": "10"
+						},
+						{
+							"key": "radius",
+							"value": "20"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "already-user/?email=test@example.com",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/already-user/?email=test@example.com",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"already-user",
+						""
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "test@example.com"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create-user/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"john.doe4@example.com\",\n  \"first_name\": \"John\",\n  \"phone_no\": \"+1234567890\",\n  \"is_institute\": true,\n  \"institute_reg_number\": \"ABC123\",\n  \"given_name\": \"John\",\n  \"address\": \"123 Main St, Cityville\",\n  \"location\": \"Cityville\",\n  \"about\": \"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\",\n  \"institute_details\": \"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\",\n  \"family_name\": \"Doe\",\n  \"link\": \"http://example.com/johndoe\",\n  \"picture\": \"http://example.com/johndoe.jpg\",\n  \"locale\": \"en_US\",\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"extra_field\": {\n    \"key1\": \"value1\",\n    \"key2\": \"value2\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/create-user/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"create-user",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create-wish/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"wish_title\": \"I wish for learn Python\",\n    \"wish_description\": \"I want to learn python from scratch and become backend web developer\",\n    \"category\": \"Education\",\n    \"user_id\": 1,\n    \"location\": \"Pune\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/create-wish/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"create-wish",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "change-status/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"wish_id\": 2,\n    \"user_id\": 1,\n    \"picked_by_id\": 4\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/change-status/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"change-status",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "categories",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/categories/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"categories",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "wishes/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/wishes/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"wishes",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "speech/?page=1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/speeches/?page=1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"speeches",
+						""
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "speech/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/speeches/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"speeches",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "user-speech/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/user-speech/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"user-speech",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create-speech/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"speech_title\": \"Empowering Youth Through Education\",\n  \"speech_description\": \"Discuss the importance of education in shaping the future of our youth.\",\n  \"user_id\": 1,  // Replace with the actual user_id\n  \"category\": \"Education\",\n  \"location\": \"Cityville\",\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"platform_url\": \"https://example.com/speech\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/create-speech/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"create-speech",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pick-wish/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"wish_id\": 1,\n  \"user_id\": 4\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/pick-wish/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"pick-wish",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pick-speech/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"speech_id\": 11,\n  \"user_id\": 4\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/pick-speech/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"pick-speech",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "fulfill/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"wish_id\": 19,\n    \"url\": {\n        \"link\": \"https://google.com\",\n        \"meta_data\": {\n            \"title\": \"Title of the link\",\n            \"description\": \"Description of the link\"\n        }\n    },\n    \"description\": \"A description of the social media post\",\n    \"platform\": \"Twitter\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/fulfill/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"fulfill",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "event/",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/event/?isCompleted=true",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"event",
+						""
+					],
+					"query": [
+						{
+							"key": "isCompleted",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/event/wish",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/event/wish?isCompleted=false",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"event",
+						"wish"
+					],
+					"query": [
+						{
+							"key": "isCompleted",
+							"value": "false"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "event/speech",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/event/speech?isCompleted=false",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"event",
+						"speech"
+					],
+					"query": [
+						{
+							"key": "isCompleted",
+							"value": "false"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "user/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/user/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"user",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "speech-by-category/Empowering",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/speech-by-category/Education",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"speech-by-category",
+						"Education"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "speech-by-location/?latitude=40.7128&longitude=-74&radius=10&page=1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/speech-by-location/?latitude=37.77&longitude=-122.41&radius=10&page=1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"speech-by-location",
+						""
+					],
+					"query": [
+						{
+							"key": "latitude",
+							"value": "37.77"
+						},
+						{
+							"key": "longitude",
+							"value": "-122.41"
+						},
+						{
+							"key": "radius",
+							"value": "10"
+						},
+						{
+							"key": "page",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update-user/1/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"updated_email@example.com\",\n    \"first_name\": \"Updated First Name\",\n    \"phone_no\": \"+1234567890\",\n    \"address\": \"Updated Address\",\n    \"location\": \"Updated Location\",\n    \"about\": \"Updated About\",\n    \"link\": \"https://updatedlink.com\",\n    \"picture\": \"https://updatedpicture.com\",\n    \"locale\": \"en_US\",\n    \"latitude\": 12.345,\n    \"longitude\": -67.890\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/update-user/1/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"update-user",
+						"1",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get-fulfill-details/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"wish_id\": 2\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/get-fulfill-details/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get-fulfill-details",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

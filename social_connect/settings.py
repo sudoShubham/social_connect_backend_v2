@@ -81,15 +81,33 @@ WSGI_APPLICATION = 'social_connect.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'social_connect',
+#         'USER': 'postgres',
+#         'PASSWORD': 'sudoRoot@2105',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+
+# Add these at the top of your settings.py
+
+# Replace the DATABASES section of your settings.py with this
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'social_connect',
-        'USER': 'postgres',
-        'PASSWORD': 'sudoRoot@2105',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+  'default': {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': 'social_connect',
+    'USER': 'social_connect_owner',
+    'PASSWORD': 'lkRD6vCQrcL3',
+    'HOST': 'ep-divine-cell-a1hwdvto.ap-southeast-1.aws.neon.tech',
+    'PORT': 5432,
+    'OPTIONS': {
+      'sslmode': 'require',
+    },
+  }
 }
 
 # Password validation
