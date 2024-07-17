@@ -511,12 +511,36 @@ def get_categories(request):
         wish_categories = Wishes.objects.values_list('category', flat=True).distinct()
         
         # Combine and deduplicate categories
-        all_categories = set(list(speech_categories) + list(wish_categories))
+        all_categories = set(list(speech_categories) + list(wish_categories) + list(["Education",
+    "Social Work",
+    "Personal",
+    "Other",
+    "Health and Wellness",
+    "Career Development",
+    "Technology",
+    "Finance",
+    "Arts and Culture",
+    "Travel",
+    "Environment",
+    "Sports and Recreation",
+    "Community Service",
+    "Family and Relationships",
+    "Self-Improvement",
+    "Hobbies",
+    "Entrepreneurship",
+    "Science and Research",
+    "Spirituality and Religion",
+    "Advocacy and Activism",
+    "Entertainment",
+    "Literature",
+    "Music",
+    "Lifestyle"]))
         
         return JsonResponse({'categories': list(all_categories)}, status=200)
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
     
 
 @require_GET
