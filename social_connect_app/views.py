@@ -1,5 +1,6 @@
 # social_connect_app/views.py
 
+from django.forms import model_to_dict
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.csrf import csrf_exempt
@@ -8,6 +9,7 @@ from django.views.decorators.http import require_GET
 from math import radians, sin, cos, sqrt, atan2
 from django.shortcuts import get_object_or_404 
 from django.db.models import Q
+from yaml import serialize
 from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatus, SocialMedia, CompletionDetails
 import json
 
@@ -488,16 +490,21 @@ def wishes_by_location_view(request):
 
 
 @require_GET
-def check_user_exists(request):
-    email = request.GET.get('email')
-    
-    if not email:
-        return JsonResponse({'error': 'Email parameter is required'}, status=400)
-    
-    user_exists = SeekersInstitutes.objects.filter(email=email).exists()
-    
-    return JsonResponse({'exists': user_exists})
+def already_user_view(request):
+    try:
+        email = request.GET.get('email')
+        if not email:
+            return JsonResponse({'error': 'Email parameter is required'}, status=400)
 
+        try:
+            user = SeekersInstitutes.objects.get(email=email)
+            user_data = model_to_dict(user)
+            return JsonResponse({'user_exists': True, 'user_data': user_data}, status=200)
+        except:
+            return JsonResponse({'user_exists': False}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 
@@ -512,25 +519,15 @@ def get_categories(request):
         
         # Combine and deduplicate categories
         all_categories = set(list(speech_categories) + list(wish_categories) + list(["Education",
-    "Social Work",
     "Personal",
     "Other",
-    "Health and Wellness",
-    "Career Development",
     "Technology",
     "Finance",
-    "Arts and Culture",
     "Travel",
     "Environment",
-    "Sports and Recreation",
-    "Community Service",
-    "Family and Relationships",
-    "Self-Improvement",
     "Hobbies",
     "Entrepreneurship",
-    "Science and Research",
     "Spirituality and Religion",
-    "Advocacy and Activism",
     "Entertainment",
     "Literature",
     "Music",
