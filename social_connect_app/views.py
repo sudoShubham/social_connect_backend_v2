@@ -1,7 +1,7 @@
 # social_connect_app/views.py
 
 from django.forms import model_to_dict
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -1023,3 +1023,96 @@ def get_fulfill_details(request):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+@require_GET
+def get_user_summary(request, userID):
+    try:
+        user = get_object_or_404(SeekersInstitutes, user_id=userID)
+    except Http404:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    # Get wishes created by the user
+    created_wishes = Wishes.objects.filter(created_by=user)
+    created_wishes_list = [
+        {
+            'wish_id': wish.wish_id,
+            'wish_title': wish.wish_title,
+            'wish_description': wish.wish_description,
+            'created_date': wish.created_date,
+            'is_picked': wish.is_picked,
+            'status': wish.wish_status.status if hasattr(wish, 'wish_status') else None,
+            'is_verified': wish.is_verified,
+            'category': wish.category,
+            'location': wish.location,
+            'latitude': wish.latitude,
+            'longitude': wish.longitude,
+        } for wish in created_wishes
+    ]
+
+    # Get speeches created by the user
+    created_speeches = Speeches.objects.filter(created_by=user)
+    created_speeches_list = [
+        {
+            'speech_id': speech.speech_id,
+            'speech_title': speech.speech_title,
+            'speech_description': speech.speech_description,
+            'created_date': speech.created_date,
+            'is_picked': speech.is_picked,
+            'status': speech.speech_status.status if hasattr(speech, 'speech_status') else None,
+            'is_verified': speech.is_verified,
+            'category': speech.category,
+            'location': speech.location,
+            'latitude': speech.latitude,
+            'longitude': speech.longitude,
+        } for speech in created_speeches
+    ]
+
+    # Get wishes fulfilled by the user
+    fulfilled_wishes = CompletionDetails.objects.filter(completed_by_user=user, wish__isnull=False)
+    fulfilled_wishes_list = [
+        {
+            'wish_id': completion.wish.wish_id,
+            'wish_title': completion.wish.wish_title,
+            'wish_description': completion.wish.wish_description,
+            'created_date': completion.wish.created_date,
+            'is_picked': completion.wish.is_picked,
+            'status': completion.wish.wish_status.status if hasattr(completion.wish, 'wish_status') else None,
+            'is_verified': completion.wish.is_verified,
+            'category': completion.wish.category,
+            'location': completion.wish.location,
+            'latitude': completion.wish.latitude,
+            'longitude': completion.wish.longitude,
+        } for completion in fulfilled_wishes
+    ]
+
+    # Get speeches fulfilled by the user
+    fulfilled_speeches = CompletionDetails.objects.filter(completed_by_user=user, speech__isnull=False)
+    fulfilled_speeches_list = [
+        {
+            'speech_id': completion.speech.speech_id,
+            'speech_title': completion.speech.speech_title,
+            'speech_description': completion.speech.speech_description,
+            'created_date': completion.speech.created_date,
+            'is_picked': completion.speech.is_picked,
+            'status': completion.speech.speech_status.status if hasattr(completion.speech, 'speech_status') else None,
+            'is_verified': completion.speech.is_verified,
+            'category': completion.speech.category,
+            'location': completion.speech.location,
+            'latitude': completion.speech.latitude,
+            'longitude': completion.speech.longitude,
+        } for completion in fulfilled_speeches
+    ]
+
+    user_summary = {
+        'user_id': user.user_id,
+        'first_name': user.first_name,
+        'family_name': user.family_name,
+        'email': user.email,
+        'created_wishes': created_wishes_list,
+        'created_speeches': created_speeches_list,
+        'fulfilled_wishes': fulfilled_wishes_list,
+        'fulfilled_speeches': fulfilled_speeches_list,
+    }
+
+    return JsonResponse(user_summary, safe=False)
