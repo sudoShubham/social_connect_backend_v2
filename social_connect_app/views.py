@@ -9,9 +9,83 @@ from django.views.decorators.http import require_GET
 from math import radians, sin, cos, sqrt, atan2
 from django.shortcuts import get_object_or_404 
 from django.db.models import Q
-from yaml import serialize
 from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatus, SocialMedia, CompletionDetails
 import json
+
+
+def user_to_dict(user):
+    return {
+        'user_id': user.user_id,
+        'email': user.email,
+        'picture': user.picture,
+        'first_name': user.first_name,
+        'last_name': user.family_name
+    }
+
+
+
+def user_backend_to_dict(user):
+    return {
+        'user_id': user.user_id,
+        'email': user.email,
+        'is_mail_verified': user.is_mail_verified,
+        'first_name': user.first_name,
+        'phone_no': user.phone_no,
+        'is_institute': user.is_institute,
+        'institute_reg_number': user.institute_reg_number,
+        'given_name': user.given_name,
+        'address': user.address,
+        'location': user.location,
+        'about': user.about,
+        'institute_details': user.institute_details,
+        'family_name': user.family_name,
+        'link': user.link,
+        'picture': user.picture,
+        'locale': user.locale,
+        'had': None,  # This field is not in the original model, adjust as needed
+        'latitude': user.latitude,
+        'longitude': user.longitude,
+    }
+
+
+def wish_to_dict(wish):
+    return {
+        'wish_id': wish.wish_id,
+        'wish_title': wish.wish_title,
+        'wish_description': wish.wish_description,
+        'created_by': user_to_dict(wish.created_by),
+        'picked_by': [user_to_dict(user) for user in wish.wish_status.picked_by.all()] if hasattr(wish, 'wish_status') else [],
+        'is_picked': wish.is_picked == 'true',
+        'status': wish.wish_status.status if hasattr(wish, 'wish_status') else None,
+        'is_verified': wish.is_verified,
+        'category': wish.category,
+        'location': wish.location,
+        'latitude': wish.latitude,
+        'longitude': wish.longitude,
+        'created_date': wish.created_date.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+
+
+def speech_to_dict(speech):
+    return {
+        'speech_id': speech.speech_id,
+        'speech_title': speech.speech_title,
+        'speech_description': speech.speech_description,
+        'created_by': user_to_dict(speech.created_by),
+        'picked_by': [user_to_dict(user) for user in speech.speech_status.picked_by.all()] if hasattr(speech, 'speech_status') else [],
+        'is_picked': speech.is_picked == 'true',
+        'status': speech.speech_status.status if hasattr(speech, 'speech_status') else None,
+        'is_verified': speech.is_verified,
+        'category': speech.category,
+        'location': speech.location,
+        'latitude': speech.latitude,
+        'longitude': speech.longitude,
+        'platform_url': speech.platform_url,
+        'created_date': speech.created_date.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+
 
 
 @csrf_exempt  # Disable CSRF protection for this view (for demo purposes)
@@ -21,7 +95,7 @@ def create_user(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError as e:
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'}, status=400)
     
     # Extract data from JSON payload
     email = data.get('email')
@@ -44,7 +118,7 @@ def create_user(request):
 
     # Validate required fields
     if not email or not first_name:
-        return JsonResponse({'error': 'Email and First Name are required'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Email and First Name are required'}, status=400)
 
     # Validate and create the user
     try:
@@ -67,9 +141,9 @@ def create_user(request):
             longitude=longitude,
             extra_field=extra_field
         )
-        return JsonResponse({'message': 'User created successfully', 'user_id': user.user_id}, status=201)
+        return JsonResponse({'success': True, 'data': {'message': 'User created successfully', 'user_id': user.user_id}}, status=201)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
 @csrf_exempt
@@ -79,7 +153,8 @@ def create_wish(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError as e:
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'}, status=400)
+
     
     # Extract data from JSON payload
     wish_title = data.get('wish_title')
@@ -92,7 +167,8 @@ def create_wish(request):
 
     # Validate required fields
     if not wish_title or not wish_description or not user_id:
-        return JsonResponse({'error': 'Wish Title, Wish Description, and User ID are required'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Wish Title, Wish Description, and User ID are required'}, status=400)
+
 
     # Create the wish and its status
     try:
@@ -116,13 +192,16 @@ def create_wish(request):
             status='Created'  # Default status when wish is created
         )
 
-        return JsonResponse({'message': 'Wish created successfully', 'wish_id': wish.wish_id}, status=201)
+        return JsonResponse({'success': True, 'data': {'message': 'Wish created successfully', 'wish_id': wish.wish_id}}, status=201)
     
+
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'User does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': 'User does not exist'}, status=404)
+
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 
 @csrf_exempt
@@ -132,7 +211,7 @@ def create_speech(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError as e:
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'}, status=400)
     
     # Extract data from JSON payload
     speech_title = data.get('speech_title')
@@ -146,7 +225,8 @@ def create_speech(request):
 
     # Validate required fields
     if not speech_title or not speech_description or not user_id:
-        return JsonResponse({'error': 'Speech Title, Speech Description, and User ID are required'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Speech Title, Speech Description, and User ID are required'}, status=400)
+
 
     # Create the speech and its status
     try:
@@ -171,13 +251,15 @@ def create_speech(request):
             status='Created'  # Default status when speech is created
         )
 
-        return JsonResponse({'message': 'Speech created successfully', 'speech_id': speech.speech_id}, status=201)
+        return JsonResponse({'success': True, 'data': {'message': 'Speech created successfully', 'speech_id': speech.speech_id}}, status=201)
+
     
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'User does not exist'}, status=404)
-    
+        return JsonResponse({'success': False, 'error': 'User does not exist'}, status=404)
+
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @csrf_exempt
 @require_POST
@@ -205,9 +287,9 @@ def pick_wish(request):
         if SeekersInstitutes.objects.filter(pk=user_id).exists():
             user = SeekersInstitutes.objects.get(pk=user_id)
             if user in wish_status.picked_by.all():
-                return JsonResponse({'error': 'User has already picked this wish'}, status=400)
+                return JsonResponse( {'success': False, 'error': 'User has already picked this wish'}, status=400)
         else:
-            return JsonResponse({'error': 'Invalid User ID'}, status=400)
+            return JsonResponse( {'success': False, 'error': 'Invalid User ID'}, status=400)
 
         # Update WishStatus and pick the wish
         wish_status.status = 'In-Progress'
@@ -217,13 +299,13 @@ def pick_wish(request):
         wish_status.picked_by.add(user)
         wish_status.save()
 
-        return JsonResponse({'message': 'Wish picked successfully', 'wish_id': wish_id}, status=200)
+        return JsonResponse( {'success': True, 'data': {'message': 'Wish picked successfully', 'wish_id': wish_id}}, status=200)
     
     except Wishes.DoesNotExist:
-        return JsonResponse({'error': 'Wish does not exist'}, status=404)
+        return JsonResponse( { 'success': False, 'error': 'Wish does not exist'}, status=404)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse ({ 'success': False, 'error': str(e)}, status=500)
     
 
 @csrf_exempt
@@ -233,7 +315,7 @@ def pick_speech(request):
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError as e:
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        return JsonResponse( {'success': False, 'error': 'Invalid JSON format'}, status=400)
     
     # Extract data from JSON payload
     speech_id = data.get('speech_id')
@@ -241,7 +323,7 @@ def pick_speech(request):
 
     # Validate required fields
     if not speech_id or not user_id:
-        return JsonResponse({'error': 'Speech ID and User ID are required'}, status=400)
+        return JsonResponse( {'success': False, 'error': 'Speech ID and User ID are required'}, status=400)
 
     try:
         # Fetch the speech object
@@ -252,9 +334,9 @@ def pick_speech(request):
         if SeekersInstitutes.objects.filter(pk=user_id).exists():
             user = SeekersInstitutes.objects.get(pk=user_id)
             if user in speech_status.picked_by.all():
-                return JsonResponse({'error': 'User has already picked this speech'}, status=400)
+                return JsonResponse( {'success': False, 'error': 'User has already picked this speech'}, status=400)
         else:
-            return JsonResponse({'error': 'Invalid User ID'}, status=400)
+            return JsonResponse( {'success': False, 'error': 'Invalid User ID'}, status=400)
 
         # Update SpeechStatus and pick the speech
         speech_status.status = 'In-Progress'
@@ -264,150 +346,107 @@ def pick_speech(request):
         speech_status.picked_by.add(user)
         speech_status.save()
 
-        return JsonResponse({'message': 'Speech picked successfully', 'speech_id': speech_id}, status=200)
+        return JsonResponse( {'success': True, 'data': {'message': 'Speech picked successfully', 'speech_id': speech_id}}, status=200)
     
     except Speeches.DoesNotExist:
-        return JsonResponse({'error': 'Speech does not exist'}, status=404)
+        return JsonResponse( {'success': False, 'error': 'Speech does not exist'}, status=404)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
 @require_GET
 def list_wishes(request):
-    wishes = Wishes.objects.all().select_related('wish_status')
+    wishes = Wishes.objects.all().select_related('wish_status', 'created_by')
     paginator = Paginator(wishes, 10)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
-    wishes_list = []
-    for wish in page_obj:
-        picked_by_users = [{
-            'name': user.first_name,
-            'user_id': user.user_id,  # Adjust to match your actual user ID field name
-            'status': wish.wish_status.status
-        } for user in wish.wish_status.picked_by.all()]
-        
-        wishes_list.append({
-            'wish_id': wish.wish_id,
-            'wish_title': wish.wish_title,
-            'wish_description': wish.wish_description,
-            'created_by_id': wish.created_by.user_id, 
-            'created_by': wish.created_by.first_name,
-            'picked_by': picked_by_users,
-            'status': wish.wish_status.status,
-            'category': wish.category,
-            'location': wish.location,
-            'latitude': wish.latitude,
-            'longitude': wish.longitude,
-            'created_date': wish.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-        })
+    wishes_list = [wish_to_dict(wish) for wish in page_obj]
 
-    return JsonResponse({'wishes': wishes_list, 'total_pages': paginator.num_pages})
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'items': wishes_list,
+            'total_pages': paginator.num_pages , 
+            'count': paginator.count,
+            'has_next' : page_obj.has_next(), 
+            'has_previous' : page_obj.has_previous()
+        }
+    })
+
 
 
 @require_GET
 def list_speeches(request):
-    speeches = Speeches.objects.all().select_related('speech_status')
+    speeches = Speeches.objects.all().select_related('speech_status', 'created_by')
     paginator = Paginator(speeches, 10)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
-    speeches_list = []
-    for speech in page_obj:
-        picked_by_users = [{
-            'name': user.first_name,
-            'user_id': user.user_id,  # Adjust to match your actual user ID field name
-            'status': speech.speech_status.status  # Assuming status is the same for all picked_by users
-        } for user in speech.speech_status.picked_by.all()]
-        
-        speeches_list.append({
-            'speech_id': speech.speech_id,
-            'speech_title': speech.speech_title,
-            'speech_description': speech.speech_description,
-            'created_by_id': speech.created_by.user_id, 
-            'created_by': speech.created_by.first_name,
-            'picked_by': picked_by_users,
-            'status': speech.speech_status.status,
-            'category': speech.category,
-            'location': speech.location,
-            'latitude': speech.latitude,
-            'longitude': speech.longitude,
-            'created_date': speech.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'platform_url': speech.platform_url,
-        })
+    speeches_list = [speech_to_dict(speech) for speech in page_obj]
 
-    return JsonResponse({'speeches': speeches_list, 'total_pages': paginator.num_pages})
+    return JsonResponse({
+        'success': True,
+        'data':  {
+            'items': speeches_list,
+            'total_pages': paginator.num_pages , 
+            'has_next' : page_obj.has_next(), 
+            'count': paginator.count,
+            'has_previous' : page_obj.has_previous()
+        }
+    })
 
 
 
+
+@require_GET
 def wish_by_category(request, category):
-    # Fetch wishes for the given category and order them by some field
-    wishes = Wishes.objects.filter(category=category).select_related('wish_status').order_by('created_date')
-
-    # Pagination
-    paginator = Paginator(wishes, 10)  # 10 items per page
+    wishes = Wishes.objects.filter(category=category).select_related('wish_status', 'created_by').order_by('created_date')
+    paginator = Paginator(wishes, 10)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # Prepare response data
-    wishes_list = []
-    for wish in page_obj:
-        picked_by_users = [{
-            'name': user.first_name,
-            'user_id': user.user_id,  # Adjust to match your actual user ID field name
-            'status': wish.wish_status.status  # Assuming status is the same for all picked_by users
-        } for user in wish.wish_status.picked_by.all()]
+    wishes_list = [wish_to_dict(wish) for wish in page_obj]
 
-        wishes_list.append({
-            'wish_id': wish.wish_id,
-            'wish_title': wish.wish_title,
-            'wish_description': wish.wish_description,
-            'created_by_id': wish.created_by.user_id, 
-            'created_by': wish.created_by.first_name,
-            'picked_by': picked_by_users,
-            'status': wish.wish_status.status,
-            'category': wish.category,
-            'location': wish.location,
-            'latitude': wish.latitude,
-            'longitude': wish.longitude,
-            'created_date': wish.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-        })
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'items': wishes_list,
+            'total_pages': paginator.num_pages , 
+            'count': paginator.count,
+            'has_next' : page_obj.has_next(), 
+            'has_previous' : page_obj.has_previous()
+        }
+    })
 
-    return JsonResponse({'wishes': wishes_list, 'total_pages': paginator.num_pages})
 
 
 @require_GET
 def user_wishes(request, user_id):
     try:
-        wishes = Wishes.objects.filter(created_by_id=user_id).order_by('-created_date')
-        paginator = Paginator(wishes, 10)  # 10 items per page
+        wishes = Wishes.objects.filter(created_by_id=user_id).select_related('wish_status', 'created_by').order_by('-created_date')
+        paginator = Paginator(wishes, 10)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
-        wishes_list = []
-        for wish in page_obj:
-            wishes_list.append({
-                'wish_id': wish.wish_id,
-                'wish_title': wish.wish_title,
-                'wish_description': wish.wish_description,
-                'created_by': wish.created_by.first_name,
-                'status': wish.wish_status.status,
-                'category': wish.category,
-                'location': wish.location,
-                'latitude': wish.latitude,
-                'longitude': wish.longitude,
-                'created_date': wish.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-            })
+        wishes_list = [wish_to_dict(wish) for wish in page_obj]
 
-        return JsonResponse({'wishes': wishes_list, 'total_pages': paginator.num_pages})
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'items': wishes_list,
+                'total_pages': paginator.num_pages , 
+                'count': paginator.count,
+                'has_next' : page_obj.has_next(), 
+                'has_previous' : page_obj.has_previous()
+            }
+        })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-# Haversine formula to calculate distance
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371  # Radius of the Earth in km
     dlat = radians(lat2 - lat1)
@@ -423,11 +462,11 @@ def wishes_by_location_view(request):
     try:
         latitude = float(request.GET.get('latitude'))
         longitude = float(request.GET.get('longitude'))
-        radius = float(request.GET.get('radius', 10))  # Default radius is 10 km
+        radius = float(request.GET.get('radius', 10))
     except (TypeError, ValueError):
-        return JsonResponse({'error': 'Invalid or missing latitude, longitude, or radius parameters'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid or missing latitude, longitude, or radius parameters'}, status=400)
 
-    wishes = Wishes.objects.all()
+    wishes = Wishes.objects.all().select_related('wish_status', 'created_by')
     nearby_wishes = []
 
     for wish in wishes:
@@ -438,54 +477,27 @@ def wishes_by_location_view(request):
                 nearby_wishes.append(wish)
 
     if not nearby_wishes:
-        return JsonResponse({'message': 'No wish found for given location'}, status=200)
+        return JsonResponse({'success': True, 'data': {'message': 'No wish found for given location'}}, status=200)
 
-    # Pagination
-    page = request.GET.get('page')
-    paginator = Paginator(nearby_wishes, 10)  # 10 wishes per page
+    page = request.GET.get('page', 1)
+    paginator = Paginator(nearby_wishes, 10)
 
     try:
         wishes_page = paginator.page(page)
     except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
         wishes_page = paginator.page(1)
     except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
         wishes_page = paginator.page(paginator.num_pages)
 
-    # Prepare data to return
     data = {
-        'latitude': latitude,
-        'longitude': longitude,
-        'radius': radius,
         'count': paginator.count,
-        'num_pages': paginator.num_pages,
-        'current_page': wishes_page.number,
+        'total_pages': paginator.num_pages,
         'has_next': wishes_page.has_next(),
         'has_previous': wishes_page.has_previous(),
-        'results': [
-            {
-                'wish_id': wish.wish_id,
-                'wish_title': wish.wish_title,
-                'wish_description': wish.wish_description,
-                'created_by': wish.created_by.user_id,
-                'picked_by': [{
-                    'user_id': user.user_id,
-                    'name': user.first_name
-                } for user in wish.wish_status.picked_by.all()] if wish.wish_status else None,
-                'is_picked': wish.is_picked,
-                'status': wish.wish_status.status if wish.wish_status else None,
-                'is_verified': wish.is_verified,
-                'category': wish.category,
-                'location': wish.location,
-                'latitude': wish.latitude,
-                'longitude': wish.longitude,
-                'created_date': wish.created_date,
-            } for wish in wishes_page.object_list
-        ]
+        'items': [wish_to_dict(wish) for wish in wishes_page.object_list]
     }
 
-    return JsonResponse(data, safe=False)
+    return JsonResponse({'success': True, 'data': data}, safe=False)
 
 
 
@@ -494,175 +506,77 @@ def check_user_exists(request):
     try:
         email = request.GET.get('email')
         if not email:
-            return JsonResponse({'error': 'Email parameter is required'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Email parameter is required'}, status=400)
 
         try:
             user = SeekersInstitutes.objects.get(email=email)
-            user_data = model_to_dict(user)
-            return JsonResponse({'user_exists': True, 'user_data': user_data}, status=200)
-        except:
-            return JsonResponse({'user_exists': False}, status=200)
+            user_data = user_backend_to_dict(user)
+            return JsonResponse({'success': True, 'data': {'user_exists': True, 'user_data': user_data}}, status=200)
+        except SeekersInstitutes.DoesNotExist:
+            return JsonResponse({'success': True, 'data': {'user_exists': False}}, status=200)
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 
 @require_GET    
 def get_categories(request):
     try:
-        # Get all unique categories from Speeches and Wishes
         speech_categories = Speeches.objects.values_list('category', flat=True).distinct()
         wish_categories = Wishes.objects.values_list('category', flat=True).distinct()
         
-        # Combine and deduplicate categories
-        all_categories = set(list(speech_categories) + list(wish_categories) + list(["Education",
-    "Personal",
-    "Other",
-    "Technology",
-    "Finance",
-    "Travel",
-    "Environment",
-    "Hobbies",
-    "Entrepreneurship",
-    "Spirituality and Religion",
-    "Entertainment",
-    "Literature",
-    "Music",
-    "Lifestyle"]))
+        all_categories = set(list(speech_categories) + list(wish_categories) + [
+            "Education", "Personal", "Other", "Technology", "Finance", "Travel", "Environment",
+            "Hobbies", "Entrepreneurship", "Spirituality and Religion", "Entertainment",
+            "Literature", "Music", "Lifestyle"
+        ])
         
-        return JsonResponse({'categories': list(all_categories)}, status=200)
+        return JsonResponse({'success': True, 'data': {'categories': list(all_categories)}}, status=200)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
 @require_GET
 def get_wish_details(request, wishID):
     try:
-        # Get the wish object based on wishID
         wish = get_object_or_404(Wishes, wish_id=wishID)
-        
-        # Fetch wish status and related picked_by details
-        try:
-            wish_status = WishStatus.objects.get(wish=wish)
-            picked_by = wish_status.picked_by.all()
-        except WishStatus.DoesNotExist:
-            picked_by = []
-
-        # Prepare the response data
-        wish_details = {
-            'wish_id': wish.wish_id,
-            'wish_title': wish.wish_title,
-            'wish_description': wish.wish_description,
-            'created_by': {
-                'user_id': wish.created_by.user_id,
-                'email': wish.created_by.email,
-                'first_name': wish.created_by.first_name,
-                'last_name': wish.created_by.family_name,
-            },
-            'is_picked': wish.is_picked,
-            'is_verified': wish.is_verified,
-            'category': wish.category,
-            'location': wish.location,
-            'latitude': wish.latitude,
-            'longitude': wish.longitude,
-            'created_date': wish.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'picked_by': [
-                {
-                    'user_id': picker.user_id,
-                    'name': picker.first_name,
-                    'status': wish_status.status if picker in picked_by else 'Not picked by this user'
-                }
-                for picker in picked_by
-            ]
-        }
-        
-        return JsonResponse(wish_details, status=200)
+        wish_details = wish_to_dict(wish)
+        return JsonResponse({'success': True, 'data': wish_details}, status=200)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@require_GET
 def get_speech_details(request, speechID):
     try:
-        # Get the speech object based on speechID
         speech = get_object_or_404(Speeches, speech_id=speechID)
-        
-        # Get speech status details
-        speech_status = SpeechStatus.objects.filter(speech=speech)
-        
-        # Prepare picked_by details
-        picked_by_list = []
-        for status in speech_status:
-            for picked_by in status.picked_by.all():
-                picked_by_details = {
-                    'user_id': picked_by.user_id,
-                    'status': status.status,
-                }
-                picked_by_list.append(picked_by_details)
-        
-        # Prepare the response data
-        speech_details = {
-            'speech_id': speech.speech_id,
-            'speech_title': speech.speech_title,
-            'speech_description': speech.speech_description,
-            'created_by': {
-                'user_id': speech.created_by.user_id,
-                'email': speech.created_by.email,
-                # Add any other relevant fields from SeekersInstitutes model
-            },
-            'is_picked': speech.is_picked,
-            'is_verified': speech.is_verified,
-            'category': speech.category,
-            'location': speech.location,
-            'latitude': speech.latitude,
-            'longitude': speech.longitude,
-            'created_date': speech.created_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'platform_url': speech.platform_url,
-            'picked_by': picked_by_list,
-            # Add any other fields specific to Speeches model
-        }
-        
-        return JsonResponse(speech_details, status=200)
+        speech_details = speech_to_dict(speech)
+        return JsonResponse({'success': True, 'data': speech_details}, status=200)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
+@require_GET
 def get_user_speeches(request, userID):
+
     try:
         user = get_object_or_404(SeekersInstitutes, user_id=userID)
-        speeches = Speeches.objects.filter(created_by=user)
+        speeches = Speeches.objects.filter(created_by=user).select_related('speech_status')
         
-        # Prepare serialized data to return
-        speeches_data = []
-        for speech in speeches:
-            speech_data = {
-                'speech_id': speech.speech_id,
-                'speech_title': speech.speech_title,
-                'speech_description': speech.speech_description,
-                'created_by': speech.created_by.first_name,  # Assuming you want to return creator's first name
-                'category': speech.category,
-                'location': speech.location,
-                'latitude': speech.latitude,
-                'longitude': speech.longitude,
-                'created_date': speech.created_date.strftime('%Y-%m-%d %H:%M:%S'),  # Example date formatting
-                'status': speech.speech_status.status  # Assuming you have a related model SpeechStatus
-            }
-            speeches_data.append(speech_data)
+        speeches_data = [speech_to_dict(speech) for speech in speeches]
         
-        return JsonResponse({'speeches': speeches_data}, status=200)
+        return JsonResponse({'success': True, 'data': {'speeches': speeches_data}}, status=200)
     
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'User does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': 'User does not exist'}, status=404)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 
 @csrf_exempt
 @require_POST
@@ -678,75 +592,62 @@ def create_social_media_post(request):
             wish_id = data['wish_id']
             wish = Wishes.objects.get(pk=wish_id)
             social_media = SocialMedia.objects.create(wish=wish, url=url, description=description, platform=platform)
-            return JsonResponse({'message': f'Social media entry created for Wish {wish_id}'}, status=201)
+            return JsonResponse( {'success': True, 'data': {'message': f'Social media entry created for Wish {wish_id}'}}, status=201)
         
         elif 'speech_id' in data:
             speech_id = data['speech_id']
             speech = Speeches.objects.get(pk=speech_id)
             social_media = SocialMedia.objects.create(speech=speech, url=url, description=description, platform=platform)
-            return JsonResponse({'message': f'Social media entry created for Speech {speech_id}'}, status=201)
+            return JsonResponse({'success': True, 'data': {'message': f'Social media entry created for Speech {speech_id}'}}, status=201)
         
         else:
-            return JsonResponse({'error': 'Invalid request payload'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
     
     except KeyError:
-        return JsonResponse({'error': 'Missing required fields in request payload'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
     
     except Wishes.DoesNotExist:
-        return JsonResponse({'error': 'Wish does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Wish does not exist'}, status=404)
     
     except Speeches.DoesNotExist:
-        return JsonResponse({'error': 'Speech does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Speech does not exist'}, status=404)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
+
 
 @csrf_exempt
 @require_GET
 def event(request):
     is_completed = request.GET.get('isCompleted', 'false').lower() == 'true'
+    page_number = request.GET.get('page', 1)
+    items_per_page = 10  # You can adjust this number as needed
     
     if is_completed:
-        # Return entries from SocialMedia where wishstatus or speech status is 'Completed'
         social_media_entries = SocialMedia.objects.filter(
             Q(wish__wish_status__status='Completed') | Q(speech__speech_status__status='Completed')
-        ).values()
+        )
     else:
-        # Return all entries from SocialMedia
-        social_media_entries = SocialMedia.objects.all().values()
+        social_media_entries = SocialMedia.objects.all()
     
-    return JsonResponse(list(social_media_entries), safe=False)
+    paginator = Paginator(social_media_entries, items_per_page)
+    page_obj = paginator.get_page(page_number)
+    
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'items': list(page_obj.object_list.values()),
+            'total_pages': paginator.num_pages,
+            'count': paginator.count,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous()
+        }
+    }, safe=False)
 
 
-@csrf_exempt
-@require_GET
-def event_wish(request):
-    is_completed = request.GET.get('isCompleted', 'false').lower() == 'true'
-    
-    if is_completed:
-        # Return entries from SocialMedia where wishstatus status is 'Completed'
-        social_media_entries = SocialMedia.objects.filter(wish__wish_status__status='Completed').values()
-    else:
-        # Return all wish entries from SocialMedia
-        social_media_entries = SocialMedia.objects.filter(wish__isnull=False).values()
-    
-    return JsonResponse(list(social_media_entries), safe=False)
 
 
-@csrf_exempt
-@require_GET
-def event_speech(request):
-    is_completed = request.GET.get('isCompleted', 'false').lower() == 'true'
-    
-    if is_completed:
-        # Return entries from SocialMedia where speech status is 'Completed'
-        social_media_entries = SocialMedia.objects.filter(speech__speech_status__status='Completed').values()
-    else:
-        # Return all speech entries from SocialMedia
-        social_media_entries = SocialMedia.objects.filter(speech__isnull=False).values()
-    
-    return JsonResponse(list(social_media_entries), safe=False)
 
 
 @csrf_exempt
@@ -754,77 +655,54 @@ def event_speech(request):
 def user_details(request, userID):
     try:
         user = SeekersInstitutes.objects.get(user_id=userID)
-        user_details = {
-            'user_id': user.user_id,
-            'email': user.email,
-            'is_mail_verified': user.is_mail_verified,
-            'first_name': user.first_name,
-            'phone_no': user.phone_no,
-            'is_institute': user.is_institute,
-            'institute_reg_number': user.institute_reg_number,
-            'given_name': user.given_name,
-            'address': user.address,
-            'location': user.location,
-            'about': user.about,
-            'institute_details': user.institute_details,
-            'family_name': user.family_name,
-            'link': user.link,
-            'picture': user.picture,
-            'locale': user.locale,
-            'created_date': user.created_date,
-            'latitude': user.latitude,
-            'longitude': user.longitude,
-            'extra_field': user.extra_field,
-        }
-        return JsonResponse(user_details, status=200)
+        user_details = user_backend_to_dict(user)
+        return JsonResponse({'success': True, 'data': user_details}, status=200)
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'User not found'}, status=404)
-    
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+
+
+
 
 @csrf_exempt
 @require_GET
 def speeches_by_category(request, category):
     try:
-        speeches = Speeches.objects.filter(category=category)
-        speeches_list = []
-        
-        for speech in speeches:
-            speech_data = {
-                'speech_id': speech.speech_id,
-                'speech_title': speech.speech_title,
-                'speech_description': speech.speech_description,
-                'created_by': speech.created_by.email,  # Example: Fetching email, adjust as per your model
-                'is_picked': speech.is_picked,
-                'is_verified': speech.is_verified,
-                'category': speech.category,
-                'location': speech.location,
-                'latitude': speech.latitude,
-                'longitude': speech.longitude,
-                'created_date': speech.created_date,
-                'platform_url': speech.platform_url,
-            }
-            speeches_list.append(speech_data)
-        
-        return JsonResponse(speeches_list, safe=False, status=200)
-    
-    except Speeches.DoesNotExist:
-        return JsonResponse({'error': 'No speeches found for the given category'}, status=404)
-    
+        page_number = request.GET.get('page', 1)
+        items_per_page = 10  # You can adjust this number as needed
 
+        speeches = Speeches.objects.filter(category=category).select_related('speech_status', 'created_by')
+        
+        paginator = Paginator(speeches, items_per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        speeches_list = [speech_to_dict(speech) for speech in page_obj]
+        
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'items': speeches_list,
+                'total_pages': paginator.num_pages,
+                'count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous()
+            }
+        }, safe=False, status=200)
     
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @require_GET
 def speeches_by_location_view(request):
     try:
         latitude = float(request.GET.get('latitude'))
         longitude = float(request.GET.get('longitude'))
-        radius = float(request.GET.get('radius', 20))  # Default radius is 20 km
+        radius = float(request.GET.get('radius', 20))
     except (TypeError, ValueError):
-        return JsonResponse({'error': 'Invalid or missing latitude, longitude, or radius parameters'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid or missing latitude, longitude, or radius parameters'}, status=400)
 
-    speeches = Speeches.objects.all()
+    speeches = Speeches.objects.all().select_related('speech_status', 'created_by')
     nearby_speeches = []
-
     for speech in speeches:
         speech_lat, speech_lon = speech.latitude, speech.longitude
         if speech_lat is not None and speech_lon is not None:
@@ -833,11 +711,10 @@ def speeches_by_location_view(request):
                 nearby_speeches.append(speech)
 
     if not nearby_speeches:
-        return JsonResponse({'message': 'No speeches found for given location'}, status=200)
+        return JsonResponse({'success': True, 'data': {'message': 'No speeches found for given location'}}, status=200)
 
-    # Pagination
     page = request.GET.get('page', 1)
-    paginator = Paginator(nearby_speeches, 10)  # 10 speeches per page
+    paginator = Paginator(nearby_speeches, 10)
 
     try:
         speeches_page = paginator.page(page)
@@ -846,40 +723,16 @@ def speeches_by_location_view(request):
     except EmptyPage:
         speeches_page = paginator.page(paginator.num_pages)
 
-    # Prepare data to return
     data = {
-        'latitude': latitude,
-        'longitude': longitude,
-        'radius': radius,
         'count': paginator.count,
-        'num_pages': paginator.num_pages,
-        'current_page': speeches_page.number,
+        'total_pages': paginator.num_pages,
         'has_next': speeches_page.has_next(),
         'has_previous': speeches_page.has_previous(),
-        'results': [
-            {
-                'speech_id': speech.speech_id,
-                'speech_title': speech.speech_title,
-                'speech_description': speech.speech_description,
-                'created_by': speech.created_by.email,  # Example: Adjust based on your model structure
-                'picked_by': [{
-                    'user_id': user.user_id,
-                    'name': user.first_name
-                } for user in speech.speech_status.picked_by.all()] if speech.speech_status else None,
-                'is_picked': speech.is_picked,
-                'status': speech.speech_status.status if speech.speech_status else None,
-                'is_verified': speech.is_verified,
-                'category': speech.category,
-                'location': speech.location,
-                'latitude': speech.latitude,
-                'longitude': speech.longitude,
-                'created_date': speech.created_date,
-                'platform_url': speech.platform_url,
-            } for speech in speeches_page.object_list
-        ]
+        'items': [speech_to_dict(speech) for speech in speeches_page.object_list]
     }
 
-    return JsonResponse(data, safe=False)
+    return JsonResponse({'success': True, 'data': data}, safe=False)
+
 
 
 @csrf_exempt
@@ -888,47 +741,28 @@ def update_user(request, user_id):
     try:
         data = json.loads(request.body)
         
-        # Fetch the user object
         user = SeekersInstitutes.objects.get(user_id=user_id)
         
-        # Update user fields based on JSON payload
-        if 'email' in data:
-            user.email = data['email']
-        if 'first_name' in data:
-            user.first_name = data['first_name']
-        if 'phone_no' in data:
-            user.phone_no = data['phone_no']
-        if 'address' in data:
-            user.address = data['address']
-        if 'location' in data:
-            user.location = data['location']
-        if 'about' in data:
-            user.about = data['about']
-        if 'link' in data:
-            user.link = data['link']
-        if 'picture' in data:
-            user.picture = data['picture']
-        if 'locale' in data:
-            user.locale = data['locale']
-        if 'latitude' in data:
-            user.latitude = data['latitude']
-        if 'longitude' in data:
-            user.longitude = data['longitude']
+        fields_to_update = ['email', 'first_name', 'phone_no', 'address', 'location', 'about', 'link', 'picture', 'locale', 'latitude', 'longitude']
         
-        # Save the updated user object
+        for field in fields_to_update:
+            if field in data:
+                setattr(user, field, data[field])
+        
         user.save()
         
-        return JsonResponse({'message': f'User {user_id} updated successfully'}, status=200)
+        return JsonResponse({'success': True, 'data': {'message': f'User {user_id} updated successfully'}}, status=200)
     
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': f'User with user_id {user_id} does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': f'User with user_id {user_id} does not exist'}, status=404)
     
     except KeyError:
-        return JsonResponse({'error': 'Missing required fields in request payload'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 
 @csrf_exempt
 @require_POST
@@ -942,52 +776,49 @@ def change_status(request):
             wish_id = data['wish_id']
             wish = Wishes.objects.get(pk=wish_id)
             
-            # Update status for the specific picked_by user
             wish_status, created = WishStatus.objects.get_or_create(wish=wish)
-            wish_status.picked_by.add(picked_by_id)  # Add picked_by_id to existing ManyToManyField
+            wish_status.picked_by.add(picked_by_id)
             
             wish_status.status = 'Completed'
             wish_status.save()
 
-            # Create entry in CompletionDetails
             CompletionDetails.objects.create(wish=wish, completed_by_user_id=picked_by_id)
             
-            return JsonResponse({'message': f'Wish {wish_id} status updated to Completed for user {picked_by_id}'}, status=200)
+            return JsonResponse({'success': True, 'data': {'message': f'Wish {wish_id} status updated to Completed for user {picked_by_id}'}}, status=200)
         
         elif 'speech_id' in data:
             speech_id = data['speech_id']
             speech = Speeches.objects.get(pk=speech_id)
             
-            # Update status for the specific picked_by user
             speech_status, created = SpeechStatus.objects.get_or_create(speech=speech)
-            speech_status.picked_by.add(picked_by_id)  # Add picked_by_id to existing ManyToManyField
+            speech_status.picked_by.add(picked_by_id)
             
             speech_status.status = 'Completed'
             speech_status.save()
 
-            # Create entry in CompletionDetails
             CompletionDetails.objects.create(speech=speech, completed_by_user_id=picked_by_id)
             
-            return JsonResponse({'message': f'Speech {speech_id} status updated to Completed for user {picked_by_id}'}, status=200)
+            return JsonResponse({'success': True, 'data': {'message': f'Speech {speech_id} status updated to Completed for user {picked_by_id}'}}, status=200)
         
         else:
-            return JsonResponse({'error': 'Invalid request payload'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
     
     except KeyError:
-        return JsonResponse({'error': 'Missing required fields in request payload'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
     
     except Wishes.DoesNotExist:
-        return JsonResponse({'error': 'Wish does not exist or user does not have permission'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Wish does not exist or user does not have permission'}, status=404)
     
     except Speeches.DoesNotExist:
-        return JsonResponse({'error': 'Speech does not exist or user does not have permission'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Speech does not exist or user does not have permission'}, status=404)
     
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'Picked_by user does not exist'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Picked_by user does not exist'}, status=404)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 
 @csrf_exempt
 @require_POST
@@ -1003,7 +834,7 @@ def get_fulfill_details(request):
                      'completed_by_user_id': detail.completed_by_user_id}
                     for detail in details]
             
-            return JsonResponse(data, safe=False)
+            return JsonResponse({'success': True, 'data': data}, safe=False)
         
         elif 'speech_id' in data:
             speech_id = data['speech_id']
@@ -1013,101 +844,43 @@ def get_fulfill_details(request):
                      'completed_by_user_id': detail.completed_by_user_id}
                     for detail in details]
             
-            return JsonResponse(data, safe=False)
+            return JsonResponse({'success': True, 'data': data}, safe=False)
         
         else:
-            return JsonResponse({'error': 'Invalid request payload'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
     
     except KeyError:
-        return JsonResponse({'error': 'Missing required fields in request payload'}, status=400)
+        return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 
 @require_GET
 def get_user_summary(request, userID):
     try:
         user = get_object_or_404(SeekersInstitutes, user_id=userID)
     except Http404:
-        return JsonResponse({'error': 'User not found'}, status=404)
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
 
-    # Get wishes created by the user
     created_wishes = Wishes.objects.filter(created_by=user)
-    created_wishes_list = [
-        {
-            'wish_id': wish.wish_id,
-            'wish_title': wish.wish_title,
-            'wish_description': wish.wish_description,
-            'created_date': wish.created_date,
-            'is_picked': wish.is_picked,
-            'status': wish.wish_status.status if hasattr(wish, 'wish_status') else None,
-            'is_verified': wish.is_verified,
-            'category': wish.category,
-            'location': wish.location,
-            'latitude': wish.latitude,
-            'longitude': wish.longitude,
-        } for wish in created_wishes
-    ]
+    created_wishes_list = [wish_to_dict(wish) for wish in created_wishes]
 
-    # Get speeches created by the user
     created_speeches = Speeches.objects.filter(created_by=user)
-    created_speeches_list = [
-        {
-            'speech_id': speech.speech_id,
-            'speech_title': speech.speech_title,
-            'speech_description': speech.speech_description,
-            'created_date': speech.created_date,
-            'is_picked': speech.is_picked,
-            'status': speech.speech_status.status if hasattr(speech, 'speech_status') else None,
-            'is_verified': speech.is_verified,
-            'category': speech.category,
-            'location': speech.location,
-            'latitude': speech.latitude,
-            'longitude': speech.longitude,
-        } for speech in created_speeches
-    ]
+    created_speeches_list = [speech_to_dict(speech) for speech in created_speeches]
 
-    # Get wishes fulfilled by the user
     fulfilled_wishes = CompletionDetails.objects.filter(completed_by_user=user, wish__isnull=False)
-    fulfilled_wishes_list = [
-        {
-            'wish_id': completion.wish.wish_id,
-            'wish_title': completion.wish.wish_title,
-            'wish_description': completion.wish.wish_description,
-            'created_date': completion.wish.created_date,
-            'is_picked': completion.wish.is_picked,
-            'status': completion.wish.wish_status.status if hasattr(completion.wish, 'wish_status') else None,
-            'is_verified': completion.wish.is_verified,
-            'category': completion.wish.category,
-            'location': completion.wish.location,
-            'latitude': completion.wish.latitude,
-            'longitude': completion.wish.longitude,
-        } for completion in fulfilled_wishes
-    ]
+    fulfilled_wishes_list = [wish_to_dict(completion.wish) for completion in fulfilled_wishes]
 
-    # Get speeches fulfilled by the user
     fulfilled_speeches = CompletionDetails.objects.filter(completed_by_user=user, speech__isnull=False)
-    fulfilled_speeches_list = [
-        {
-            'speech_id': completion.speech.speech_id,
-            'speech_title': completion.speech.speech_title,
-            'speech_description': completion.speech.speech_description,
-            'created_date': completion.speech.created_date,
-            'is_picked': completion.speech.is_picked,
-            'status': completion.speech.speech_status.status if hasattr(completion.speech, 'speech_status') else None,
-            'is_verified': completion.speech.is_verified,
-            'category': completion.speech.category,
-            'location': completion.speech.location,
-            'latitude': completion.speech.latitude,
-            'longitude': completion.speech.longitude,
-        } for completion in fulfilled_speeches
-    ]
+    fulfilled_speeches_list = [speech_to_dict(completion.speech) for completion in fulfilled_speeches]
 
     user_summary = {
         'user_id': user.user_id,
         'first_name': user.first_name,
-        'family_name': user.family_name,
+        'last_name': user.family_name,
+        'picture': user.picture,
         'email': user.email,
         'created_wishes': created_wishes_list,
         'created_speeches': created_speeches_list,
@@ -1115,4 +888,4 @@ def get_user_summary(request, userID):
         'fulfilled_speeches': fulfilled_speeches_list,
     }
 
-    return JsonResponse(user_summary, safe=False)
+    return JsonResponse({'success': True, 'data': user_summary}, safe=False)
