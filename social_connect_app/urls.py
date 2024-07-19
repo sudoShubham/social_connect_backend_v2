@@ -22,6 +22,7 @@ urlpatterns = [
     path('speeches/<int:speechID>/', views.get_speech_details, name='speech-details'),
     path('fulfill/', views.create_social_media_post, name='fulfill'),
     path('event/', views.event, name='event'),
+    path('event/<str:event_type>/<int:event_id>/', views.event_by_id, name='event_by_id'),
     path('user/<int:userID>/', views.user_details, name='user_details'),
     path('speech-by-category/<category>/', views.speeches_by_category, name='speeches_by_category'),
     path('speech-by-location/', views.speeches_by_location_view, name='speeches_by_location'),

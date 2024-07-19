@@ -646,20 +646,62 @@ def event(request):
     }, safe=False)
 
 
+def event_by_id(request, event_type, event_id):
+    if event_type not in ['wish', 'speech']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid event type. Must be either "wish" or "speech".'
+        }, status=400)
 
+    try:
+        if event_type == 'wish':
+            wish = get_object_or_404(Wishes, wish_id=event_id)
+            social_media = SocialMedia.objects.filter(wish=wish).first()
+        else:  # speech
+            speech = get_object_or_404(Speeches, speech_id=event_id)
+            social_media = SocialMedia.objects.filter(speech=speech).first()
 
+        if not social_media:
+            return JsonResponse({
+                'success': False,
+                'error': f'No social media entry found for the given {event_type} ID'
+            }, status=404)
+
+        data = {
+            'social_media_id': social_media.social_media_id,
+            'wish_id': social_media.wish.wish_id if social_media.wish else None,
+            'speech_id': social_media.speech.speech_id if social_media.speech else None,
+            'url': social_media.url,
+            'description': social_media.description,
+            'created_date': social_media.created_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'platform': social_media.platform,
+            'wish': wish_to_dict(social_media.wish) if social_media.wish else None,
+            'speech': speech_to_dict(social_media.speech) if social_media.speech else None,
+        }
+
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+
+    except (Wishes.DoesNotExist, Speeches.DoesNotExist):
+        return JsonResponse({
+            'success': False,
+            'error': f'No {event_type} found with the given ID'
+        }, status=404)
 
 
 @csrf_exempt
 @require_GET
-def user_details(request, userID):
-    try:
-        user = SeekersInstitutes.objects.get(user_id=userID)
-        user_details = user_backend_to_dict(user)
-        return JsonResponse({'success': True, 'data': user_details}, status=200)
-    except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
-
+def event_speech(request):
+    is_completed = request.GET.get('isCompleted', 'false').lower() == 'true'
+    
+    if is_completed:
+        social_media_entries = SocialMedia.objects.filter(speech__speech_status__status='Completed').values()
+    else:
+        social_media_entries = SocialMedia.objects.filter(speech__isnull=False).values()
+    
+    return JsonResponse({'success': True, 'data': list(social_media_entries)}, safe=False)
 
 
 
