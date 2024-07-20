@@ -931,3 +931,19 @@ def get_user_summary(request, userID):
     }
 
     return JsonResponse({'success': True, 'data': user_summary}, safe=False)
+
+
+
+@csrf_exempt
+@require_GET
+def user_details(request, userID):
+
+    try:
+        user = SeekersInstitutes.objects.get(user_id=userID)
+        user_data = user_backend_to_dict(user)
+        return JsonResponse({'success': True, 'data': user_data}, status=200)
+
+    except SeekersInstitutes.DoesNotExist:
+
+        return JsonResponse({ 'success': False, 'error': 'User does not exist'}, status=404)
+    

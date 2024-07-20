@@ -29,5 +29,4 @@ urlpatterns = [
     path('update-user/<int:user_id>/', views.update_user, name='update_user'),
     path('get-fulfill-details/', views.get_fulfill_details, name='get_fulfill_details'),
     path('get-user-summary/<int:userID>/', views.get_user_summary, name='get-user-summary'),
-    # Add other URLs as needed
 ]
