@@ -28,5 +28,6 @@ urlpatterns = [
     path('speech-by-location/', views.speeches_by_location_view, name='speeches_by_location'),
     path('update-user/<int:user_id>/', views.update_user, name='update_user'),
     path('get-fulfill-details/', views.get_fulfill_details, name='get_fulfill_details'),
+    path('get-fulfill-details/<int:socialMediaID>/', views.get_social_media, name='get_social_media'),
     path('get-user-summary/<int:userID>/', views.get_user_summary, name='get-user-summary'),
 ]

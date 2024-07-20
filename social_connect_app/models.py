@@ -54,6 +54,8 @@ class Wishes(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     created_date = models.DateTimeField(auto_now_add=True)
+    selected_fulfillment = models.ForeignKey('SocialMedia', null=True, blank=True, on_delete=models.SET_NULL, related_name='fulfilled_wish')
+
 
     def __str__(self):
         return self.wish_title
@@ -71,22 +73,13 @@ class Speeches(models.Model):
     longitude = models.FloatField(null=True, blank=True)
     created_date = models.DateTimeField(auto_now_add=True)
     platform_url = models.URLField(blank=True, null=True)
+    selected_fulfillment = models.ForeignKey('SocialMedia', null=True, blank=True, on_delete=models.SET_NULL, related_name='fulfilled_speech')
+
 
     def __str__(self):
         return self.speech_title
 
 
-class SocialMedia(models.Model):
-    social_media_id = models.AutoField(primary_key=True)
-    wish = models.ForeignKey(Wishes, related_name='social_media_posts', on_delete=models.CASCADE, null=True, blank=True)
-    speech = models.ForeignKey(Speeches, related_name='social_media_posts', on_delete=models.CASCADE, null=True, blank=True)
-    url = JSONField(blank=True, null=True)
-    created_date = models.DateTimeField(auto_now_add=True)
-    description = models.TextField(null=True, blank=True)
-    platform = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f"SocialMedia-{self.social_media_id}"
     
 
 
@@ -108,21 +101,16 @@ class SpeechStatus(models.Model):
         return f"Speech {self.speech.speech_id} - Status: {self.status}"
     
 
-class CompletionDetails(models.Model):
-    completion_id = models.AutoField(primary_key=True)
-    wish = models.ForeignKey(Wishes, on_delete=models.CASCADE, null=True, blank=True)
-    speech = models.ForeignKey(Speeches, on_delete=models.CASCADE, null=True, blank=True)
-    completed_by_user = models.ForeignKey(SeekersInstitutes, on_delete=models.CASCADE)
-    completed_date = models.DateTimeField(auto_now_add=True)
+
+class SocialMedia(models.Model):
+    social_media_id = models.AutoField(primary_key=True)
+    wish = models.ForeignKey(Wishes, related_name='social_media_posts', on_delete=models.CASCADE, null=True, blank=True)
+    speech = models.ForeignKey(Speeches, related_name='social_media_posts', on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(SeekersInstitutes, related_name='social_media_posts', on_delete=models.CASCADE, null=True, blank=True)
+    url = JSONField(blank=True, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(null=True, blank=True)
+    platform = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        if self.wish:
-            return f"CompletionDetails for Wish '{self.wish.wish_id}'"
-        elif self.speech:
-            return f"CompletionDetails for Speech '{self.speech.speech_id}'"
-        else:
-            return f"CompletionDetails"
-
-    class Meta:
-        verbose_name_plural = "CompletionDetails"
-
+        return f"SocialMedia-{self.social_media_id}"

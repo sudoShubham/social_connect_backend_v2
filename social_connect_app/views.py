@@ -9,7 +9,7 @@ from django.views.decorators.http import require_GET
 from math import radians, sin, cos, sqrt, atan2
 from django.shortcuts import get_object_or_404 
 from django.db.models import Q
-from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatus, SocialMedia, CompletionDetails
+from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatus, SocialMedia 
 import json
 
 
@@ -402,7 +402,7 @@ def list_speeches(request):
 
 @require_GET
 def wish_by_category(request, category):
-    wishes = Wishes.objects.filter(category=category).select_related('wish_status', 'created_by').order_by('created_date')
+    wishes = Wishes.objects.filter(category__iexact=category).select_related('wish_status', 'created_by').order_by('created_date')
     paginator = Paginator(wishes, 10)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
@@ -477,7 +477,13 @@ def wishes_by_location_view(request):
                 nearby_wishes.append(wish)
 
     if not nearby_wishes:
-        return JsonResponse({'success': True, 'data': {'message': 'No wish found for given location'}}, status=200)
+        return JsonResponse({'success': True, 'data': {
+            "items": [] , 
+            'total_pages': 0, 
+            'count': 0,
+            'has_next': False, 
+            'has_previous': False
+        }}, status=200)
 
     page = request.GET.get('page', 1)
     paginator = Paginator(nearby_wishes, 10)
@@ -586,19 +592,26 @@ def create_social_media_post(request):
         url = data.get('url')
         description = data.get('description')
         platform = data.get('platform')
+        user_id = data.get('user_id')
+
+        if not user_id:
+            return JsonResponse({'success': False, 'error': 'User ID is required'}, status=400)
 
         # Check if the request contains either wish_id or speech_id
         if 'wish_id' in data:
             wish_id = data['wish_id']
             wish = Wishes.objects.get(pk=wish_id)
-            social_media = SocialMedia.objects.create(wish=wish, url=url, description=description, platform=platform)
-            return JsonResponse( {'success': True, 'data': {'message': f'Social media entry created for Wish {wish_id}'}}, status=201)
+            user = SeekersInstitutes.objects.get(pk=user_id)
+            social_media = SocialMedia.objects.create(wish=wish, url=url, description=description, platform=platform, user=user)
+            return JsonResponse( {'success': True, 'data': {'message': f'Social media entry created for Wish {wish_id}'} , 'social_media_id': social_media.social_media_id }, status=201)
         
+
         elif 'speech_id' in data:
             speech_id = data['speech_id']
             speech = Speeches.objects.get(pk=speech_id)
-            social_media = SocialMedia.objects.create(speech=speech, url=url, description=description, platform=platform)
-            return JsonResponse({'success': True, 'data': {'message': f'Social media entry created for Speech {speech_id}'}}, status=201)
+            user = SeekersInstitutes.objects.get(pk=user_id)
+            social_media = SocialMedia.objects.create(speech=speech, url=url, description=description, platform=platform , user=user)
+            return JsonResponse({'success': True, 'data': {'message': f'Social media entry created for Speech {speech_id}'} , 'social_media_id': social_media.social_media_id }, status=201)
         
         else:
             return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
@@ -753,7 +766,13 @@ def speeches_by_location_view(request):
                 nearby_speeches.append(speech)
 
     if not nearby_speeches:
-        return JsonResponse({'success': True, 'data': {'message': 'No speeches found for given location'}}, status=200)
+        return JsonResponse({'success': True, 'data': {
+            "items": [] , 
+            'total_pages': 0, 
+            'count': 0,
+            'has_next': False, 
+            'has_previous': False
+        }}, status=200)
 
     page = request.GET.get('page', 1)
     paginator = Paginator(nearby_speeches, 10)
@@ -805,62 +824,63 @@ def update_user(request, user_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-
 @csrf_exempt
 @require_POST
 def change_status(request):
     try:
         data = json.loads(request.body)
-        user_id = data.get('user_id')
-        picked_by_id = data.get('picked_by_id')
+        social_id = data.get('social_id')
+        social = SocialMedia.objects.get(pk=social_id)
         
         if 'wish_id' in data:
             wish_id = data['wish_id']
             wish = Wishes.objects.get(pk=wish_id)
             
-            wish_status, created = WishStatus.objects.get_or_create(wish=wish)
-            wish_status.picked_by.add(picked_by_id)
+            if social.wish_id != wish.wish_id:
+                return JsonResponse({'success': False, 'error': 'Social media entry not related to this wish'}, status=400)
             
+            wish_status, created = WishStatus.objects.get_or_create(wish=wish)
             wish_status.status = 'Completed'
             wish_status.save()
-
-            CompletionDetails.objects.create(wish=wish, completed_by_user_id=picked_by_id)
             
-            return JsonResponse({'success': True, 'data': {'message': f'Wish {wish_id} status updated to Completed for user {picked_by_id}'}}, status=200)
+            wish.selected_fulfillment = social
+            wish.save()
+            
+            return JsonResponse({'success': True, 'data': {'message': f'Wish {wish_id} status updated to Completed for user {social.user.user_id}'}}, status=200)
         
         elif 'speech_id' in data:
             speech_id = data['speech_id']
             speech = Speeches.objects.get(pk=speech_id)
             
-            speech_status, created = SpeechStatus.objects.get_or_create(speech=speech)
-            speech_status.picked_by.add(picked_by_id)
+            if social.speech_id != speech.speech_id:
+                return JsonResponse({'success': False, 'error': 'Social media entry not related to this speech'}, status=400)
             
+            speech_status, created = SpeechStatus.objects.get_or_create(speech=speech)
             speech_status.status = 'Completed'
             speech_status.save()
-
-            CompletionDetails.objects.create(speech=speech, completed_by_user_id=picked_by_id)
             
-            return JsonResponse({'success': True, 'data': {'message': f'Speech {speech_id} status updated to Completed for user {picked_by_id}'}}, status=200)
+            speech.selected_fulfillment = social
+            speech.save()
+            
+            return JsonResponse({'success': True, 'data': {'message': f'Speech {speech_id} status updated to Completed for user {social.user.user_id}'}}, status=200)
         
         else:
             return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
     
-    except KeyError:
-        return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
+    except SocialMedia.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Social media entry not found'}, status=404)
     
     except Wishes.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Wish does not exist or user does not have permission'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Wish does not exist'}, status=404)
     
     except Speeches.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Speech does not exist or user does not have permission'}, status=404)
+        return JsonResponse({'success': False, 'error': 'Speech does not exist'}, status=404)
     
-    except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Picked_by user does not exist'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON in request body'}, status=400)
     
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
 
 @csrf_exempt
 @require_POST
@@ -870,21 +890,32 @@ def get_fulfill_details(request):
         
         if 'wish_id' in data:
             wish_id = data['wish_id']
-            details = CompletionDetails.objects.filter(wish_id=wish_id)
-            data = [{'wish_id': detail.wish_id,
-                     'speech_id': detail.speech_id,
-                     'completed_by_user_id': detail.completed_by_user_id}
-                    for detail in details]
+            socialMedia = SocialMedia.objects.filter(wish_id=wish_id)
+            
+
+            data = [{'wish_id': item.wish.wish_id,
+                     'user': user_to_dict(item.user) ,
+                     'url': item.url , 
+                     'social_media_id': item.social_media_id,
+                     'description': item.description,
+                     'platform': item.platform
+                     }
+                    for item in socialMedia]
             
             return JsonResponse({'success': True, 'data': data}, safe=False)
         
         elif 'speech_id' in data:
             speech_id = data['speech_id']
-            details = CompletionDetails.objects.filter(speech_id=speech_id)
-            data = [{'wish_id': detail.wish_id,
-                     'speech_id': detail.speech_id,
-                     'completed_by_user_id': detail.completed_by_user_id}
-                    for detail in details]
+            socialMedia = SocialMedia.objects.filter(speech_id=speech_id)
+
+            data = [{
+                     'speech_id': item.speech.speech_id,
+                     'user': user_to_dict(item.user) ,
+                     'url': item.url,
+                     'social_media_id': item.social_media_id,
+                     'description': item.description,
+                     'platform': item.platform}
+                    for item in socialMedia]
             
             return JsonResponse({'success': True, 'data': data}, safe=False)
         
@@ -893,6 +924,34 @@ def get_fulfill_details(request):
     
     except KeyError:
         return JsonResponse({'success': False, 'error': 'Missing required fields in request payload'}, status=400)
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_GET
+def get_social_media(request, socialMediaID):
+    try:
+
+        socialMedia = get_object_or_404(SocialMedia, social_media_id=socialMediaID)
+
+        if not socialMedia:
+            return JsonResponse({'success': False, 'error': 'Social media entry not found'}, status=404)
+
+        data = {
+            'social_media_id': socialMedia.social_media_id,
+            'wish_id': socialMedia.wish.wish_id if socialMedia.wish else None,
+            'speech_id': socialMedia.speech.speech_id if socialMedia.speech else None,
+            'url': socialMedia.url,
+            'description': socialMedia.description,
+            'created_date': socialMedia.created_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'user': user_to_dict(socialMedia.user),
+            'wish': wish_to_dict(socialMedia.wish) if socialMedia.wish else None,
+            'speech': speech_to_dict(socialMedia.speech) if socialMedia.speech else None,
+            'platform': socialMedia.platform,
+        }
+
+        return JsonResponse({'success': True, 'data': data }, status=200)
     
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -912,22 +971,24 @@ def get_user_summary(request, userID):
     created_speeches = Speeches.objects.filter(created_by=user)
     created_speeches_list = [speech_to_dict(speech) for speech in created_speeches]
 
-    fulfilled_wishes = CompletionDetails.objects.filter(completed_by_user=user, wish__isnull=False)
-    fulfilled_wishes_list = [wish_to_dict(completion.wish) for completion in fulfilled_wishes]
+    fulfilled_wishes =   Wishes.objects.filter(
+        selected_fulfillment__user=userID
+    )
+    fulfilled_wishes_list = [wish_to_dict(wish) for wish in fulfilled_wishes]
 
-    fulfilled_speeches = CompletionDetails.objects.filter(completed_by_user=user, speech__isnull=False)
-    fulfilled_speeches_list = [speech_to_dict(completion.speech) for completion in fulfilled_speeches]
+    fulfilled_speeches = Speeches.objects.filter(
+        selected_fulfillment__user=userID
+    )
+
+    fulfilled_speeches_list = [speech_to_dict(speech) for speech in fulfilled_speeches]
+
 
     user_summary = {
-        'user_id': user.user_id,
-        'first_name': user.first_name,
-        'last_name': user.family_name,
-        'picture': user.picture,
-        'email': user.email,
-        'created_wishes': created_wishes_list,
-        'created_speeches': created_speeches_list,
-        'fulfilled_wishes': fulfilled_wishes_list,
-        'fulfilled_speeches': fulfilled_speeches_list,
+        'user_details' : user_backend_to_dict(user) ,
+        'wishes_created': created_wishes_list,
+        'speeches_created': created_speeches_list,
+        'wishes_fulfilled': fulfilled_wishes_list,
+        'speeches_fulfilled': fulfilled_speeches_list,
     }
 
     return JsonResponse({'success': True, 'data': user_summary}, safe=False)
@@ -937,7 +998,6 @@ def get_user_summary(request, userID):
 @csrf_exempt
 @require_GET
 def user_details(request, userID):
-
     try:
         user = SeekersInstitutes.objects.get(user_id=userID)
         user_data = user_backend_to_dict(user)
