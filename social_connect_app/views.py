@@ -587,6 +587,7 @@ def get_user_speeches(request, userID):
 @csrf_exempt
 @require_POST
 def create_social_media_post(request):
+
     try:
         data = json.loads(request.body)
         url = data.get('url')
@@ -603,7 +604,7 @@ def create_social_media_post(request):
             wish = Wishes.objects.get(pk=wish_id)
             user = SeekersInstitutes.objects.get(pk=user_id)
             social_media = SocialMedia.objects.create(wish=wish, url=url, description=description, platform=platform, user=user)
-            return JsonResponse( {'success': True, 'data': {'message': f'Social media entry created for Wish {wish_id}'} , 'social_media_id': social_media.social_media_id }, status=201)
+            return JsonResponse( {'success': True, 'data': {'message': f'Social media entry created for Wish {wish_id}' , 'social_media_id': social_media.social_media_id }  }, status=201)
         
 
         elif 'speech_id' in data:
@@ -611,7 +612,7 @@ def create_social_media_post(request):
             speech = Speeches.objects.get(pk=speech_id)
             user = SeekersInstitutes.objects.get(pk=user_id)
             social_media = SocialMedia.objects.create(speech=speech, url=url, description=description, platform=platform , user=user)
-            return JsonResponse({'success': True, 'data': {'message': f'Social media entry created for Speech {speech_id}'} , 'social_media_id': social_media.social_media_id }, status=201)
+            return JsonResponse({'success': True, 'data': {'message': f'Social media entry created for Speech {speech_id}' ,  'social_media_id': social_media.social_media_id }  }, status=201)
         
         else:
             return JsonResponse({'success': False, 'error': 'Invalid request payload'}, status=400)
