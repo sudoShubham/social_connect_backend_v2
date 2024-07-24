@@ -13,7 +13,7 @@ from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatu
 import json
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 
 def user_to_dict(user):
     return {
@@ -1051,31 +1051,69 @@ def sign_up_user_view(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def sign_in_user_view(request):
+def sign_in_view(request):
     try:
+        # Parse JSON payload
         data = json.loads(request.body.decode('utf-8'))
 
-        mandatory_fields = ['email', 'password']
-        missing_fields = [field for field in mandatory_fields if field not in data]
+        # Extract credentials
+        email = data.get('email')
+        password = data.get('password')
 
-        if missing_fields:
-            return JsonResponse({'error': f'Missing fields: {", ".join(missing_fields)}'}, status=400)
+        if not email or not password:
+            return JsonResponse({'error': 'Email and password are required'}, status=400)
 
-        email = data['email']
-        password = data['password']
-
-        user = authenticate(username=email, password=password)
-
+        # Authenticate user
+        user = authenticate(request, username=email, password=password)
+        
         if user is not None:
-            return JsonResponse({'message': 'User authenticated successfully'}, status=200)
+            login(request, user)
+            # Fetch SeekersInstitutes information
+            seeker_institute = SeekersInstitutes.objects.get(email=user.email)
+            
+            # Prepare response data with user and SeekersInstitutes information
+            response_data = {
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_active': user.is_active,
+                },
+                'seeker_institute': {
+                    'user_id': seeker_institute.user_id,
+                    'email': seeker_institute.email,
+                    'is_mail_verified': seeker_institute.is_mail_verified,
+                    'first_name': seeker_institute.first_name,
+                    'phone_no': seeker_institute.phone_no,
+                    'is_institute': seeker_institute.is_institute,
+                    'institute_reg_number': seeker_institute.institute_reg_number,
+                    'given_name': seeker_institute.given_name,
+                    'address': seeker_institute.address,
+                    'location': seeker_institute.location,
+                    'about': seeker_institute.about,
+                    'institute_details': seeker_institute.institute_details,
+                    'family_name': seeker_institute.family_name,
+                    'link': seeker_institute.link,
+                    'picture': seeker_institute.picture,
+                    'locale': seeker_institute.locale,
+                    'created_date': seeker_institute.created_date,
+                    'latitude': seeker_institute.latitude,
+                    'longitude': seeker_institute.longitude,
+                }
+            }
+            
+            return JsonResponse(response_data, status=200)
         else:
             return JsonResponse({'error': 'Invalid email or password'}, status=401)
 
+    except SeekersInstitutes.DoesNotExist:
+        return JsonResponse({'error': 'User details not found in SeekersInstitutes'}, status=404)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
+        return JsonResponse({'error': str(e)}, status=500)    
 
 @require_http_methods(["POST"])
 def sign_out_view(request):
