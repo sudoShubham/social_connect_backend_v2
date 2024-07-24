@@ -11,7 +11,9 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .models import SeekersInstitutes, Wishes, Speeches, WishStatus, SpeechStatus, SocialMedia 
 import json
-
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 
 def user_to_dict(user):
     return {
@@ -1008,3 +1010,78 @@ def user_details(request, userID):
 
         return JsonResponse({ 'success': False, 'error': 'User does not exist'}, status=404)
     
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def sign_up_user_view(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+        mandatory_fields = ['email', 'password', 'first_name', 'phone_no']
+        missing_fields = [field for field in mandatory_fields if field not in data]
+
+        if missing_fields:
+            return JsonResponse({'error': f'Missing fields: {", ".join(missing_fields)}'}, status=400)
+
+        email = data['email']
+        password = data['password']
+        first_name = data['first_name']
+        phone_no = data['phone_no']
+        is_institute = data.get('is_institute', False)
+
+        if User.objects.filter(username=email).exists():
+            return JsonResponse({'error': 'Email already exists'}, status=400)
+
+        user = User.objects.create_user(username=email, email=email, password=password)
+        SeekersInstitutes.objects.create(
+            email=email,
+            first_name=first_name,
+            phone_no=phone_no,
+            is_institute=is_institute,
+            is_mail_verified=False
+        )
+
+        return JsonResponse({'message': 'User registered successfully'}, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def sign_in_user_view(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+        mandatory_fields = ['email', 'password']
+        missing_fields = [field for field in mandatory_fields if field not in data]
+
+        if missing_fields:
+            return JsonResponse({'error': f'Missing fields: {", ".join(missing_fields)}'}, status=400)
+
+        email = data['email']
+        password = data['password']
+
+        user = authenticate(username=email, password=password)
+
+        if user is not None:
+            return JsonResponse({'message': 'User authenticated successfully'}, status=200)
+        else:
+            return JsonResponse({'error': 'Invalid email or password'}, status=401)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+@require_http_methods(["POST"])
+def sign_out_view(request):
+    try:
+        # Log the user out by flushing the session
+        request.session.flush()
+        return JsonResponse({'message': 'Successfully signed out'}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

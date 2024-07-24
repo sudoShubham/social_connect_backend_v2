@@ -30,4 +30,7 @@ urlpatterns = [
     path('get-fulfill-details/', views.get_fulfill_details, name='get_fulfill_details'),
     path('get-fulfill-details/<int:socialMediaID>/', views.get_social_media, name='get_social_media'),
     path('get-user-summary/<int:userID>/', views.get_user_summary, name='get-user-summary'),
+    path('sign-up-user/', views.sign_up_user_view, name='sign_up_user'),
+    path('sign-in-user/', views.sign_in_user_view, name='sign_in_user'),
+    path('sign-out/', views.sign_out_view, name='sign_out'),
 ]
