@@ -1034,7 +1034,7 @@ def sign_up_user_view(request):
             return JsonResponse({'error': 'Email already exists'}, status=400)
 
         user = User.objects.create_user(username=email, email=email, password=password)
-        SeekersInstitutes.objects.create(
+        data = SeekersInstitutes.objects.create(
             email=email,
             first_name=first_name,
             phone_no=phone_no,
@@ -1042,7 +1042,12 @@ def sign_up_user_view(request):
             is_mail_verified=False
         )
 
-        return JsonResponse({'message': 'User registered successfully'}, status=201)
+    
+
+        response = user_to_dict(data)
+        print(response)
+
+        return JsonResponse({'message': 'User registered successfully', 'data':response, 'success':True}, status=201)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
@@ -1070,38 +1075,15 @@ def sign_in_view(request):
             login(request, user)
             # Fetch SeekersInstitutes information
             seeker_institute = SeekersInstitutes.objects.get(email=user.email)
+
+            data = user_backend_to_dict(seeker_institute)
+            # print(data)
             
             # Prepare response data with user and SeekersInstitutes information
             response_data = {
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'username': user.username,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'is_active': user.is_active,
-                },
-                'seeker_institute': {
-                    'user_id': seeker_institute.user_id,
-                    'email': seeker_institute.email,
-                    'is_mail_verified': seeker_institute.is_mail_verified,
-                    'first_name': seeker_institute.first_name,
-                    'phone_no': seeker_institute.phone_no,
-                    'is_institute': seeker_institute.is_institute,
-                    'institute_reg_number': seeker_institute.institute_reg_number,
-                    'given_name': seeker_institute.given_name,
-                    'address': seeker_institute.address,
-                    'location': seeker_institute.location,
-                    'about': seeker_institute.about,
-                    'institute_details': seeker_institute.institute_details,
-                    'family_name': seeker_institute.family_name,
-                    'link': seeker_institute.link,
-                    'picture': seeker_institute.picture,
-                    'locale': seeker_institute.locale,
-                    'created_date': seeker_institute.created_date,
-                    'latitude': seeker_institute.latitude,
-                    'longitude': seeker_institute.longitude,
-                }
+                'data': data,
+                'success': True
+                
             }
             
             return JsonResponse(response_data, status=200)
