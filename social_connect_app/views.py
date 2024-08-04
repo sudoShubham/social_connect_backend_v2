@@ -1048,7 +1048,7 @@ def sign_up_user_view(request):
         missing_fields = [field for field in mandatory_fields if field not in data]
 
         if missing_fields:
-            return JsonResponse({'error': f'Missing fields: {", ".join(missing_fields)}'}, status=400)
+            return JsonResponse({'error': f'Missing fields: {", ".join(missing_fields)}' , 'success': False}, status=400)
 
         email = data['email']
         password = data['password']
@@ -1073,12 +1073,12 @@ def sign_up_user_view(request):
         response = user_to_dict(data)
         print(response)
 
-        return JsonResponse({'message': 'User registered successfully', 'data':response, 'success':True}, status=201)
+        return JsonResponse({'data':response, 'success':True}, status=201)
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+        return JsonResponse({'error': 'Invalid JSON payload' , 'success': False}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': str(e) , 'success': False}, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -1092,7 +1092,7 @@ def sign_in_view(request):
         password = data.get('password')
 
         if not email or not password:
-            return JsonResponse({'error': 'Email and password are required'}, status=400)
+            return JsonResponse({'error': 'Email and password are required' , 'success': False}, status=400)
 
         # Authenticate user
         user = authenticate(request, username=email, password=password)
@@ -1105,23 +1105,20 @@ def sign_in_view(request):
             data = user_backend_to_dict(seeker_institute)
             # print(data)
             
-            # Prepare response data with user and SeekersInstitutes information
-            response_data = {
-                'data': data,
-                'success': True
-                
-            }
             
-            return JsonResponse(response_data, status=200)
+            return JsonResponse( {
+                "success": True,
+                "data": data 
+                }, status=200)
         else:
-            return JsonResponse({'error': 'Invalid email or password'}, status=401)
+            return JsonResponse({'error': 'Invalid email or password', 'success': False}, status=401)
 
     except SeekersInstitutes.DoesNotExist:
-        return JsonResponse({'error': 'User details not found in SeekersInstitutes'}, status=404)
+        return JsonResponse({'error': 'User details not found in SeekersInstitutes' , 'success': False}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+        return JsonResponse({'error': 'Invalid JSON payload' , 'success': False}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)    
+        return JsonResponse({'error': str(e) , 'success': False}, status=500)
 
 @require_http_methods(["POST"])
 def sign_out_view(request):
