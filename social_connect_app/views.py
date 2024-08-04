@@ -15,6 +15,27 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 
+
+def social_media_to_dict(social_media):
+    data = {
+        'social_media_id': social_media.social_media_id,
+        'user_id': social_media.user_id,
+        'url': social_media.url,
+        'created_date': social_media.created_date,
+        'description': social_media.description,
+        'platform': social_media.platform,
+        'wish': {
+            'wish_title': social_media.wish.wish_title if social_media.wish else None
+        },
+        'speech': {
+            'speech_title': social_media.speech.speech_title if social_media.speech else None
+        }
+    }
+    return data
+
+
+
+
 def user_to_dict(user):
     return {
         'user_id': user.user_id,
@@ -633,6 +654,7 @@ def create_social_media_post(request):
     
 
 
+
 @csrf_exempt
 @require_GET
 def event(request):
@@ -640,20 +662,22 @@ def event(request):
     page_number = request.GET.get('page', 1)
     items_per_page = 10  # You can adjust this number as needed
     
+    social_media_entries = SocialMedia.objects.select_related('wish', 'speech').all()
+    
     if is_completed:
-        social_media_entries = SocialMedia.objects.filter(
+        social_media_entries = social_media_entries.filter(
             Q(wish__wish_status__status='Completed') | Q(speech__speech_status__status='Completed')
         )
-    else:
-        social_media_entries = SocialMedia.objects.all()
     
     paginator = Paginator(social_media_entries, items_per_page)
     page_obj = paginator.get_page(page_number)
     
+    formatted_items = [social_media_to_dict(item) for item in page_obj.object_list]
+    
     return JsonResponse({
         'success': True,
         'data': {
-            'items': list(page_obj.object_list.values()),
+            'items': formatted_items,
             'total_pages': paginator.num_pages,
             'count': paginator.count,
             'has_next': page_obj.has_next(),
@@ -804,10 +828,12 @@ def speeches_by_location_view(request):
 def update_user(request, user_id):
     try:
         data = json.loads(request.body)
+        print(data)
         
         user = SeekersInstitutes.objects.get(user_id=user_id)
         
-        fields_to_update = ['email', 'first_name', 'phone_no', 'address', 'location', 'about', 'link', 'picture', 'locale', 'latitude', 'longitude']
+        fields_to_update = ['email', 'first_name', 'phone_no', 'address', 'location', 'about', 'link', 'picture', 'locale', 'latitude', 'longitude', 
+                            'is_institute' , 'institute_reg_number' , 'given_name', 'institute_details', 'family_name']
         
         for field in fields_to_update:
             if field in data:
