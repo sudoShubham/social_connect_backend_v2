@@ -1006,19 +1006,13 @@ def get_user_summary(request, userId):
 
     # Prepare the response data
     data = {
-        "user_details": {
-            "user_id": user.user_id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "phone_no": user.phone_no,
-            "is_institute": user.is_institute,
-        },
-        "wishes_created": list(wishes_created.values('wish_id', 'wish_title', 'wish_status__status')),
-        "speeches_created": list(speeches_created.values('speech_id', 'speech_title', 'speech_status__status')),
-        "wishes_fulfilled": list(wishes_fulfilled.values('wish__wish_id', 'wish__wish_title', 'status')),
-        "speeches_fulfilled": list(speeches_fulfilled.values('speech__speech_id', 'speech__speech_title', 'status')),
-        "wishes_pending": list(wishes_pending.values('wish__wish_id', 'wish__wish_title', 'status')),
-        "speeches_pending": list(speeches_pending.values('speech__speech_id', 'speech__speech_title', 'status')),
+        "user_details": user_backend_to_dict(user),
+        "wishes_created": [wish_to_dict(wish) for wish in wishes_created],
+        "wishes_pending": [wish_to_dict(wish) for wish in wishes_pending],
+        "wishes_fulfilled": [wish_to_dict(wish) for wish in wishes_fulfilled],
+        "speeches_created": [speech_to_dict(speech) for speech in speeches_created],
+        "speeches_pending": [speech_to_dict(speech) for speech in speeches_pending],
+        "speeches_fulfilled": [speech_to_dict(speech) for speech in speeches_fulfilled],
     }
 
     return JsonResponse({"success": True, "data": data})
