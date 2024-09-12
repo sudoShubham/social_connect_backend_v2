@@ -988,39 +988,42 @@ def get_social_media(request, socialMediaID):
 
 
 @require_GET
-def get_user_summary(request, userID):
-    try:
-        user = get_object_or_404(SeekersInstitutes, user_id=userID)
-    except Http404:
-        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+def get_user_summary(request, userId):
+    # Fetch the user details
+    user = get_object_or_404(SeekersInstitutes, pk=userId)
 
-    created_wishes = Wishes.objects.filter(created_by=user)
-    created_wishes_list = [wish_to_dict(wish) for wish in created_wishes]
+    # Fetch created wishes and speeches
+    wishes_created = Wishes.objects.filter(created_by=user)
+    speeches_created = Speeches.objects.filter(created_by=user)
 
-    created_speeches = Speeches.objects.filter(created_by=user)
-    created_speeches_list = [speech_to_dict(speech) for speech in created_speeches]
+    # Fetch fulfilled wishes and speeches (completed by the user)
+    wishes_fulfilled = WishStatus.objects.filter(picked_by=user, status='Completed')
+    speeches_fulfilled = SpeechStatus.objects.filter(picked_by=user, status='Completed')
 
-    fulfilled_wishes =   Wishes.objects.filter(
-        selected_fulfillment__user=userID
-    )
-    fulfilled_wishes_list = [wish_to_dict(wish) for wish in fulfilled_wishes]
+    # Fetch pending wishes and speeches (picked by the user, but not yet completed)
+    wishes_pending = WishStatus.objects.filter(picked_by=user, status='In-Progress')
+    speeches_pending = SpeechStatus.objects.filter(picked_by=user, status='In-Progress')
 
-    fulfilled_speeches = Speeches.objects.filter(
-        selected_fulfillment__user=userID
-    )
-
-    fulfilled_speeches_list = [speech_to_dict(speech) for speech in fulfilled_speeches]
-
-
-    user_summary = {
-        'user_details' : user_backend_to_dict(user) ,
-        'wishes_created': created_wishes_list,
-        'speeches_created': created_speeches_list,
-        'wishes_fulfilled': fulfilled_wishes_list,
-        'speeches_fulfilled': fulfilled_speeches_list,
+    # Prepare the response data
+    data = {
+        "user_details": {
+            "user_id": user.user_id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "phone_no": user.phone_no,
+            "is_institute": user.is_institute,
+        },
+        "wishes_created": list(wishes_created.values('wish_id', 'wish_title', 'wish_status__status')),
+        "speeches_created": list(speeches_created.values('speech_id', 'speech_title', 'speech_status__status')),
+        "wishes_fulfilled": list(wishes_fulfilled.values('wish__wish_id', 'wish__wish_title', 'status')),
+        "speeches_fulfilled": list(speeches_fulfilled.values('speech__speech_id', 'speech__speech_title', 'status')),
+        "wishes_pending": list(wishes_pending.values('wish__wish_id', 'wish__wish_title', 'status')),
+        "speeches_pending": list(speeches_pending.values('speech__speech_id', 'speech__speech_title', 'status')),
     }
 
-    return JsonResponse({'success': True, 'data': user_summary}, safe=False)
+    return JsonResponse({"success": True, "data": data})
+
+
 
 
 
