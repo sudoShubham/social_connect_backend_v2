@@ -992,27 +992,40 @@ def get_user_summary(request, userId):
     # Fetch the user details
     user = get_object_or_404(SeekersInstitutes, pk=userId)
 
-    # Fetch created wishes and speeches
-    wishes_created = Wishes.objects.filter(created_by=user)
-    speeches_created = Speeches.objects.filter(created_by=user)
+    # Helper function to format wish/speech data
+    def format_item(item, item_type):
+        return {
+            f"{item_type}_id": getattr(item, f"{item_type}_id"),
+            f"{item_type}_title": getattr(item, f"{item_type}_title"),
+            f"{item_type}_description": getattr(item, f"{item_type}_description"),
+            "created_by": {
+                "picture": item.created_by.picture,
+                "first_name": item.created_by.first_name,
+            },
+            "status": getattr(item, f"{item_type}_status").status if hasattr(item, f"{item_type}_status") else None,
+            "category": item.category,
+            "created_date": item.created_date.strftime('%Y-%m-%d %H:%M:%S'),
+        }
 
-    # Fetch fulfilled wishes and speeches (completed by the user)
-    wishes_fulfilled = WishStatus.objects.filter(picked_by=user, status='Completed')
-    speeches_fulfilled = SpeechStatus.objects.filter(picked_by=user, status='Completed')
+    # Fetch and format wishes
+    wishes_created = [format_item(wish, "wish") for wish in Wishes.objects.filter(created_by=user)]
+    wishes_pending = [format_item(status.wish, "wish") for status in WishStatus.objects.filter(picked_by=user, status='In-Progress')]
+    wishes_fulfilled = [format_item(status.wish, "wish") for status in WishStatus.objects.filter(picked_by=user, status='Completed')]
 
-    # Fetch pending wishes and speeches (picked by the user, but not yet completed)
-    wishes_pending = WishStatus.objects.filter(picked_by=user, status='In-Progress')
-    speeches_pending = SpeechStatus.objects.filter(picked_by=user, status='In-Progress')
+    # Fetch and format speeches
+    speeches_created = [format_item(speech, "speech") for speech in Speeches.objects.filter(created_by=user)]
+    speeches_pending = [format_item(status.speech, "speech") for status in SpeechStatus.objects.filter(picked_by=user, status='In-Progress')]
+    speeches_fulfilled = [format_item(status.speech, "speech") for status in SpeechStatus.objects.filter(picked_by=user, status='Completed')]
 
     # Prepare the response data
     data = {
         "user_details": user_backend_to_dict(user),
-        "wishes_created": [wish_to_dict(wish) for wish in wishes_created],
-        "wishes_pending": [wish_to_dict(wish) for wish in wishes_pending],
-        "wishes_fulfilled": [wish_to_dict(wish) for wish in wishes_fulfilled],
-        "speeches_created": [speech_to_dict(speech) for speech in speeches_created],
-        "speeches_pending": [speech_to_dict(speech) for speech in speeches_pending],
-        "speeches_fulfilled": [speech_to_dict(speech) for speech in speeches_fulfilled],
+        "wishes_created": wishes_created,
+        "wishes_pending": wishes_pending,
+        "wishes_fulfilled": wishes_fulfilled,
+        "speeches_created": speeches_created,
+        "speeches_pending": speeches_pending,
+        "speeches_fulfilled": speeches_fulfilled,
     }
 
     return JsonResponse({"success": True, "data": data})
